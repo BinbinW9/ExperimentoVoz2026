@@ -1,13 +1,11 @@
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
-
   const key = process.env.OPENAI_API_KEY;
-  if (!key) {
-    return res.status(500).json({ error: "❌ OPENAI_API_KEY 未设置" });
-  }
+
+  if (!key) return res.status(500).json({ error: "Missing API key" });
 
   try {
-    const { action, threadId, assistantId } = req.body;
+    const { action, threadId, content, assistantId, runId } = req.body;
     let url, method, body;
 
     switch (action) {
@@ -15,13 +13,18 @@ export default async function handler(req, res) {
         url = "https://api.openai.com/v1/threads";
         method = "POST";
         break;
+      case "sendMessage":
+        url = `https://api.openai.com/v1/threads/${threadId}/messages`;
+        method = "POST";
+        body = { role: "user", content };
+        break;
       case "runAssistant":
         url = `https://api.openai.com/v1/threads/${threadId}/runs`;
         method = "POST";
         body = { assistant_id: assistantId };
         break;
       case "checkRun":
-        url = `https://api.openai.com/v1/threads/${threadId}/runs/${req.body.runId}`;
+        url = `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`;
         method = "GET";
         break;
       case "getMessages":
@@ -29,7 +32,7 @@ export default async function handler(req, res) {
         method = "GET";
         break;
       default:
-        return res.status(400).json({ error: "无效的操作: " + action });
+        return res.status(400).json({ error: "Invalid action" });
     }
 
     const response = await fetch(url, {
@@ -43,21 +46,9 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: `OpenAI API 错误: ${response.status}`,
-        details: data
-      });
-    }
-
-    return res.status(200).json(data);
+    return res.status(response.ok ? 200 : response.status).json(data);
 
   } catch (err) {
-    console.error("服务器错误:", err);
-    return res.status(500).json({
-      error: "服务器内部错误",
-      message: err.message
-    });
+    return res.status(500).json({ error: "Server error" });
   }
 }
