@@ -83,9 +83,7 @@
             };
 
             recognition.onend = () => {
-                if (!isSpeaking && status.textContent === "Escuchando...") {
-                    recognition.start();
-                }
+                if (!isSpeaking) recognition.start();
             };
             return true;
         }
@@ -102,27 +100,28 @@
 
         async function sendToAssistant(texto) {
             status.textContent = "Procesando...";
-            try {
-                await fetch("/api/run", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "sendMessage", threadId, content: texto })
-                });
+            
+            await fetch("/api/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    action: "sendMessage", 
+                    threadId, 
+                    content: texto 
+                })
+            });
 
-                const runRes = await fetch("/api/run", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "runAssistant", threadId, assistantId: currentAssistantId })
-                });
-                const run = await runRes.json();
-                if (!run.id) throw new Error("No se pudo iniciar el run");
-
-                await waitForResponse(run.id);
-            } catch (err) {
-                console.error(err);
-                status.textContent = "Error, intentando de nuevo...";
-                recognition.start();
-            }
+            const runRes = await fetch("/api/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    action: "runAssistant", 
+                    threadId, 
+                    assistantId: currentAssistantId 
+                })
+            });
+            const run = await runRes.json();
+            await waitForResponse(run.id);
         }
 
         async function waitForResponse(runId) {
@@ -135,7 +134,7 @@
                 });
                 const data = await res.json();
                 estado = data.status;
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 600));
             } while (estado === "queued" || estado === "in_progress");
 
             const msgRes = await fetch("/api/run", {
@@ -151,10 +150,13 @@
 
         async function speak(texto) {
             if (isSpeaking) return;
-            if (audioActual) { audioActual.pause(); audioActual = null; }
+            if (audioActual) {
+                audioActual.pause();
+                audioActual = null;
+            }
 
             isSpeaking = true;
-            if (recognition) recognition.stop();
+            recognition.stop();
             status.textContent = "Hablando...";
 
             const res = await fetch("/api/speak", {
@@ -172,12 +174,14 @@
                 status.textContent = "Escuchando...";
                 recognition.start();
             };
+
             audioActual.onerror = () => {
                 isSpeaking = false;
                 audioActual = null;
-                status.textContent = "Error en audio";
+                status.textContent = "Error";
                 recognition.start();
             };
+
             audioActual.play();
         }
 
