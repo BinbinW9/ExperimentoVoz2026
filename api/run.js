@@ -3,7 +3,7 @@ export default async function handler(req, res) {
 
   const key = process.env.OPENAI_API_KEY;
   if (!key) {
-    return res.status(500).json({ error: "❌ OPENAI_API_KEY is NOT set in Netlify environment variables" });
+    return res.status(500).json({ error: "❌ OPENAI_API_KEY is NOT set in environment variables" });
   }
 
   try {
