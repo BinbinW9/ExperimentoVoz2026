@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estudio de Interacción Empática</title>
+    <title>Experimento de Interacción con Agente de IA</title>
     <style>
         *{box-sizing:border-box;font-family:Arial,sans-serif}
         body{max-width:900px;margin:30px auto;padding:20px;background:#f7f9fc}
@@ -97,6 +97,15 @@ async function createThread(){
 
 async function sendToAssistant(texto){
     status.textContent="Procesando...";
+    await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+            "OpenAI-Beta": "assistants=v1",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ role: "user", content: texto })
+    });
     const runRes=await fetch("/api/run",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
