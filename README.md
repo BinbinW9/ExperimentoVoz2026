@@ -1,1 +1,0 @@
-# ExperimentoVoz2026
