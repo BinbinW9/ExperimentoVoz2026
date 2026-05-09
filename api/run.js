@@ -1,45 +1,66 @@
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export default async function handler(req, res) {
-  const { action, threadId, content, runId, assistantId } = req.body;
+  const { OPENAI_API_KEY } = process.env;
+  if (!OPENAI_API_KEY) {
+    return res.status(500).json({ error: "API Key no configurada" });
+  }
+
+  const { action, threadId, content, assistantId, runId } = req.body;
+  const headers = {
+    "Authorization": `Bearer ${OPENAI_API_KEY}`,
+    "OpenAI-Beta": "assistants=v2",
+    "Content-Type": "application/json"
+  };
 
   try {
-    if (action === 'createThread') {
-      const thread = await openai.beta.threads.create();
-      return res.status(200).json(thread);
+    if (action === "createThread") {
+      const response = await fetch("https://api.openai.com/v1/threads", {
+        method: "POST",
+        headers
+      });
+      const data = await response.json();
+      return res.status(200).json(data);
     }
 
-    if (action === 'sendMessage') {
-      await openai.beta.threads.messages.create(threadId, {
-        role: 'user',
-        content: content,
+    if (action === "sendMessage") {
+      await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ role: "user", content })
       });
       return res.status(200).json({ ok: true });
     }
 
-    if (action === 'runAssistant') {
-      const run = await openai.beta.threads.runs.create(threadId, {
-        assistant_id: assistantId,
+    if (action === "runAssistant") {
+      const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ assistant_id: assistantId })
       });
-      return res.status(200).json(run);
+      const data = await response.json();
+      return res.status(200).json(data);
     }
 
-    if (action === 'checkRun') {
-      const run = await openai.beta.threads.runs.retrieve(threadId, runId);
-      return res.status(200).json(run);
+    if (action === "checkRun") {
+      const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+        method: "GET",
+        headers
+      });
+      const data = await response.json();
+      return res.status(200).json(data);
     }
 
-    if (action === 'getMessages') {
-      const messages = await openai.beta.threads.messages.list(threadId);
-      return res.status(200).json(messages);
+    if (action === "getMessages") {
+      const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
+        method: "GET",
+        headers
+      });
+      const data = await response.json();
+      return res.status(200).json(data);
     }
 
-    return res.status(400).json({ error: 'Acción inválida' });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return res.status(400).json({ error: "Acción inválida" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error del servidor" });
   }
 }
