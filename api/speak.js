@@ -1,16 +1,10 @@
 export default async function handler(req, res) {
-  res.setHeader('Content-Type', 'audio/mpeg');
-
   const key = process.env.OPENAI_API_KEY;
-  if (!key) {
-    return res.status(500).send("API key missing");
-  }
+  if (!key) return res.status(500).send("API key missing");
 
   try {
     const { text } = req.body;
-    if (!text) {
-      return res.status(400).send("Missing text");
-    }
+    if (!text) return res.status(400).send("Missing text");
 
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
@@ -18,24 +12,17 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${key}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model: "tts-1",
-        voice: "nova",
-        input: text
-      })
+      body: JSON.stringify({ model: "tts-1", voice: "nova", input: text })
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("OpenAI TTS Error:", response.status, errText);
-      return res.status(500).send(`OpenAI Error: ${response.status}`);
-    }
+    if (!response.ok) return res.status(500).send("TTS error");
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    const audioBuffer = await response.arrayBuffer();
-    res.status(200).send(Buffer.from(audioBuffer));
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.send(buffer);
 
   } catch (err) {
-    console.error("Speak function error:", err);
-    res.status(500).send("Internal Server Error: " + err.message);
+    res.status(500).send("Error");
   }
 }
