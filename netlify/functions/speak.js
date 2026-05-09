@@ -3,13 +3,13 @@ export default async function handler(req, res) {
 
   const key = process.env.OPENAI_API_KEY;
   if (!key) {
-    return res.status(500).json({ error: "OPENAI_API_KEY not set" });
+    return res.status(500).send("API key missing");
   }
 
   try {
     const { text } = req.body;
     if (!text) {
-      return res.status(400).json({ error: "Missing text" });
+      return res.status(400).send("Missing text");
     }
 
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
@@ -26,15 +26,16 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      const errData = await response.json();
-      return res.status(500).json({ error: errData });
+      const errText = await response.text();
+      console.error("OpenAI TTS Error:", response.status, errText);
+      return res.status(500).send(`OpenAI Error: ${response.status}`);
     }
 
     const audioBuffer = await response.arrayBuffer();
     res.status(200).send(Buffer.from(audioBuffer));
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: err.message });
+    console.error("Speak function error:", err);
+    res.status(500).send("Internal Server Error: " + err.message);
   }
 }
