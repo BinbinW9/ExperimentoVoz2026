@@ -15,11 +15,6 @@ export default async function handler(req, res) {
         url = "https://api.openai.com/v1/threads";
         method = "POST";
         break;
-      case "sendMessage":
-        url = `https://api.openai.com/v1/threads/${threadId}/messages`;
-        method = "POST";
-        body = { role: "user", content };
-        break;
       case "runAssistant":
         url = `https://api.openai.com/v1/threads/${threadId}/runs`;
         method = "POST";
@@ -62,8 +57,7 @@ export default async function handler(req, res) {
     console.error("❌ Handler error:", err);
     return res.status(500).json({
       error: "❌ Internal Server Error",
-      message: err.message,
-      stack: err.stack
+      message: err.message
     });
   }
 }
