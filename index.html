@@ -98,18 +98,30 @@
             threadId = data.id;
         }
 
+        // ✅ FIXED: Ahora SÍ envía el mensaje del usuario
         async function sendToAssistant(texto) {
             status.textContent = "Procesando...";
+            
+            // Enviar mensaje del usuario
             await fetch("/api/run", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "sendMessage", threadId, content: texto })
+                body: JSON.stringify({ 
+                    action: "sendMessage", 
+                    threadId, 
+                    content: texto 
+                })
             });
 
+            // Ejecutar asistente
             const runRes = await fetch("/api/run", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "runAssistant", threadId, assistantId: currentAssistantId })
+                body: JSON.stringify({ 
+                    action: "runAssistant", 
+                    threadId, 
+                    assistantId: currentAssistantId 
+                })
             });
             const run = await runRes.json();
             await waitForResponse(run.id);
@@ -125,7 +137,7 @@
                 });
                 const data = await res.json();
                 estado = data.status;
-                await new Promise(r => setTimeout(r, 600));
+                await new Promise(r => setTimeout(r, 800));
             } while (estado === "queued" || estado === "in_progress");
 
             const msgRes = await fetch("/api/run", {
