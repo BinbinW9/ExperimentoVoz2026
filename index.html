@@ -50,12 +50,9 @@
     </div>
 
 <script>
-const VOICE="nova";
 let codigoParticipante="";
 let currentAssistantId=document.getElementById("agentSelect").value;
 let threadId=null;
-let isSpeaking=false;
-let audioActual=null;
 let recognition;
 
 let status=document.getElementById("status");
@@ -77,20 +74,19 @@ function initSpeechRecognition(){
     recognition.continuous=false;
     recognition.interimResults=false;
     recognition.onresult=async function(e){
-        if(isSpeaking)return;
         const texto=e.results[0][0].transcript;
         addMessage("Tú",texto);
         recognition.stop();
         await sendToAssistant(texto)
     };
     recognition.onend=function(){
-        if(!isSpeaking)recognition.start()
+        recognition.start()
     };
     return true
 }
 
 async function createThread(){
-    const res=await fetch("/.netlify/functions/run",{
+    const res=await fetch("/api/run",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({action:"createThread"})
@@ -101,15 +97,7 @@ async function createThread(){
 
 async function sendToAssistant(texto){
     status.textContent="Procesando...";
-    
-    // 👉 AQUI COMENTÉ LA LLAMADA A SPEAK.JS
-    // await fetch("/.netlify/functions/speak",{
-    //     method:"POST",
-    //     headers:{"Content-Type":"application/json"},
-    //     body:JSON.stringify({action:"sendMessage",threadId,content:texto})
-    // });
-
-    const runRes=await fetch("/.netlify/functions/run",{
+    const runRes=await fetch("/api/run",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({action:"runAssistant",threadId,assistantId:currentAssistantId})
@@ -121,7 +109,7 @@ async function sendToAssistant(texto){
 async function waitForResponse(runId){
     let estado;
     do{
-        const res=await fetch("/.netlify/functions/run",{
+        const res=await fetch("/api/run",{
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body:JSON.stringify({action:"checkRun",threadId,runId})
@@ -131,7 +119,7 @@ async function waitForResponse(runId){
         await new Promise(r=>setTimeout(r,600))
     }while(estado==="queued"||estado==="in_progress");
     
-    const msgRes=await fetch("/.netlify/functions/run",{
+    const msgRes=await fetch("/api/run",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({action:"getMessages",threadId})
@@ -139,16 +127,9 @@ async function waitForResponse(runId){
     const mensajes=await msgRes.json();
     const respuesta=mensajes.data[0].content[0].text.value;
     addMessage("Agente",respuesta);
-    
-    // 👉 AQUI TAMBIÉN COMENTÉ EL SPEAK() PARA NO LANZAR ERROR
-    // await speak(respuesta);
-
     status.textContent="Escuchando...";
     recognition.start();
 }
-
-// 👉 FUNCIÓN SPEAK() COMPLETA DESACTIVADA
-// async function speak(texto){ ... }
 
 function addMessage(quien,texto){
     const div=document.createElement("div");
@@ -180,10 +161,6 @@ async function startExperiment(){
     
     const primeraPregunta="¿Podrías contarme algo que te haya preocupado o generado ansiedad últimamente?";
     addMessage("Agente",primeraPregunta);
-    
-    // 👉 TAMBIÉN COMENTÉ EL SPEAK INICIAL
-    // await speak(primeraPregunta);
-
     status.textContent="Escuchando...";
     recognition.start();
 }
