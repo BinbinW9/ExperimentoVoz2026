@@ -3,7 +3,7 @@ export default async function handler(req, res) {
 
   const key = process.env.OPENAI_API_KEY;
   if (!key) {
-    return res.status(500).json({ error: "OPENAI_API_KEY not set" });
+    return res.status(500).json({ error: "❌ OPENAI_API_KEY is NOT set in Netlify environment variables" });
   }
 
   try {
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         method = "GET";
         break;
       default:
-        return res.status(400).json({ error: "Invalid action" });
+        return res.status(400).json({ error: "❌ Invalid action: " + action });
     }
 
     const response = await fetch(url, {
@@ -48,10 +48,22 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: `❌ OpenAI API Error: ${response.status}`,
+        details: data
+      });
+    }
+
     return res.status(200).json(data);
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: err.message });
+    console.error("❌ Handler error:", err);
+    return res.status(500).json({
+      error: "❌ Internal Server Error",
+      message: err.message,
+      stack: err.stack
+    });
   }
 }
