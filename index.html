@@ -85,8 +85,18 @@
             };
 
             recognition.onend = () => {
-                if (!isSpeaking) recognition.start();
+                if (!isSpeaking) {
+                    try { recognition.start(); } catch(e) {}
+                }
             };
+
+            recognition.onerror = (event) => {
+                console.error("Error de reconocimiento:", event.error);
+                isSpeaking = false;
+                status.textContent = "Error, reintentando...";
+                try { recognition.start(); } catch(e) {}
+            };
+
             return true;
         }
 
@@ -146,31 +156,35 @@
             if (audioActual) { audioActual.pause(); audioActual = null; }
 
             isSpeaking = true;
-            recognition.stop();
+            if (recognition) recognition.stop();
             status.textContent = "Hablando...";
 
-            const res = await fetch("/api/speak", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: texto })
-            });
+            try {
+                const res = await fetch("/api/speak", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: texto })
+                });
 
-            const blob = await res.blob();
-            audioActual = new Audio(URL.createObjectURL(blob));
+                const blob = await res.blob();
+                audioActual = new Audio(URL.createObjectURL(blob));
 
-            audioActual.onended = () => {
-                isSpeaking = false;
-                audioActual = null;
-                status.textContent = "Escuchando...";
-                recognition.start();
-            };
-            audioActual.onerror = () => {
-                isSpeaking = false;
-                audioActual = null;
-                status.textContent = "Error";
-                recognition.start();
-            };
-            audioActual.play();
+                audioActual.onended = resetSpeakingState;
+                audioActual.onerror = resetSpeakingState;
+                audioActual.play();
+            } catch (error) {
+                console.error("Error al hablar:", error);
+                resetSpeakingState();
+            }
+        }
+
+        function resetSpeakingState() {
+            isSpeaking = false;
+            audioActual = null;
+            status.textContent = "Escuchando...";
+            if (recognition) {
+                try { recognition.start(); } catch(e) {}
+            }
         }
 
         function addMessage(quien, texto) {
