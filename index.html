@@ -3,243 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estudio de Interacción con Agentes de Voz</title>
+    <title>Estudio de Interacción - Agente de Voz</title>
     <style>
-        * { 
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box; 
-            font-family: 'Segoe UI', Roboto, Arial, sans-serif; 
-        }
-        body { 
-            background: linear-gradient(135deg, #f0f4f8 0%, #e1e8f0 100%);
-            min-height: 100vh;
-            padding: 2rem 1rem;
-        }
-        .container { 
-            max-width: 900px;
-            margin: 0 auto;
-            background: #ffffff; 
-            padding: 2.5rem; 
-            border-radius: 20px; 
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-        }
-        h1 { 
-            text-align: center; 
-            color: #1a2b48; 
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            letter-spacing: 0.5px;
-        }
-        .info { 
-            background: #f5f8fc;
-            border-left: 4px solid #2563eb;
-            padding: 1.25rem 1.5rem; 
-            border-radius: 12px; 
-            margin: 1.5rem 0; 
-            line-height: 1.7;
-            color: #334155;
-            font-size: 15px;
-        }
-        .input-group { 
-            margin: 2rem 0; 
-            text-align: center;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            justify-content: center;
-            align-items: center;
-        }
-        input, select { 
-            padding: 14px 18px; 
-            font-size: 15px; 
-            border-radius: 10px; 
-            border: 1px solid #cbd5e1; 
-            background: #f8fafc;
-            color: #1e293b;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-        input:focus, select:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-        button { 
-            padding: 14px 24px; 
-            font-size: 15px; 
-            border-radius: 10px; 
-            border: none; 
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .btn-primary { 
-            background: #2563eb; 
-            color: white; 
-        }
-        .btn-primary:hover {
-            background: #1d4ed8;
-            transform: translateY(-2px);
-        }
-        .btn-success { 
-            background: #059669; 
-            color: white; 
-        }
-        .btn-success:hover {
-            background: #047857;
-            transform: translateY(-2px);
-        }
-        button:disabled { 
-            background: #94a3b8; 
-            cursor: not-allowed;
-            transform: none !important;
-        }
-        .status { 
-            background: #eff6ff;
-            color: #1e40af;
-            padding: 1.25rem; 
-            border-radius: 12px; 
-            text-align: center; 
-            margin: 1.5rem 0; 
-            font-size: 16px;
-            font-weight: 500;
-        }
-        .chat { 
-            height: 420px; 
-            overflow-y: auto; 
-            background: #f8fafc; 
-            padding: 1.5rem; 
-            border-radius: 16px; 
-            border: 1px solid #e2e8f0;
-        }
-        .chat::-webkit-scrollbar {
-            width: 6px;
-        }
-        .chat::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        .msg { 
-            margin: 12px 0; 
-            padding: 14px 18px; 
-            border-radius: 14px;
-            line-height: 1.6;
-            font-size: 15px;
-            max-width: 85%;
-        }
-        .user { 
-            background: #2563eb;
-            color: #ffffff;
-            margin-left: auto;
-            border-bottom-right-radius: 4px;
-        }
-        .agent { 
-            background: #e2e8f0;
-            color: #1a2b48;
-            margin-right: auto;
-            border-bottom-left-radius: 4px;
-        }
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { max-width: 900px; margin: 30px auto; padding: 20px; background: #f7f9fc; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #222; font-size: 22px; }
+        .info { background: #e9f5ff; padding: 15px; border-radius: 8px; margin: 20px 0; line-height: 1.6; }
+        .input-group { margin: 15px 0; text-align: center; }
+        input, select, button { padding: 12px 20px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; margin: 0 5px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:disabled { background: #999; cursor: not-allowed; }
+        .status { background: #e9f5ff; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; font-size: 16px; }
+        .chat { height: 400px; overflow-y: auto; background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .msg { margin: 10px 0; padding: 10px 15px; border-radius: 8px; }
+        .user { background: #d1e7ff; text-align: right; }
+        .agent { background: #e2e3e3; text-align: left; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Estudio de Interacción con Agentes de Voz</h1>
+        <h1>Estudio de Interacción con Agentes Empáticos</h1>
 
         <div class="info">
-            <strong>Instrucciones de uso:</strong><br>
-            1. Escribe tu código de participante único (ej: L1-01, FL-01).<br>
-            2. Selecciona el nivel de frecuencia del agente y pulsa Iniciar.<br>
-            3. Conversación totalmente automática: habla naturalmente cuando el agente finalice su intervención.<br>
-            4. No requiere pulsar botones para responder, la escucha se activa automáticamente.
+            <strong>Instrucciones para participar:</strong><br>
+            1. Escribe tu código único (ej: L1-01, FL-01).<br>
+            2. Selecciona el agente y pulsa "Iniciar".<br>
+            3. Habla claro cuando el sistema diga "Escuchando...".<br>
+            4. Responde a las preguntas con naturalidad.<br>
+            5. La conversación durará entre 9 y 11 minutos.
         </div>
 
         <div class="input-group">
-            <input type="text" id="codigo" placeholder="Código de participante">
+            <input type="text" id="codigo" placeholder="Escribe tu código aquí">
             <select id="agentSelect">
                 <option value="asst_Zutq2kWYF9Xx29ka2XO7Zi92">Baja Frecuencia</option>
                 <option value="asst_zk5aU4oHYA9NYd6BSmYHuHut">Media Frecuencia</option>
                 <option value="asst_NmxEk9l2Sk6ivcy4rSEWQT7R">Alta Frecuencia</option>
             </select>
-            <button class="btn btn-primary" onclick="startExperiment()">Iniciar Experimento</button>
-            <button class="btn btn-success" onclick="exportConversation()">Exportar Conversación</button>
+            <button onclick="startExperiment()">Iniciar Conversación</button>
+            <button onclick="exportConversation()" style="background: #28a745">Exportar Conversación</button>
         </div>
 
-        <div class="status" id="status">Estado: Listo para comenzar</div>
+        <div class="status" id="status">Estado: Listo</div>
         <div class="chat" id="chat"></div>
     </div>
 
     <script>
+        const VOICE = "nova";
         let codigoParticipante = "";
         let currentAssistantId = document.getElementById("agentSelect").value;
         let threadId = null;
         let isSpeaking = false;
-        let recognition = null;
-        const statusEl = document.getElementById("status");
-        const chatEl = document.getElementById("chat");
+        let audioActual = null;
+        let recognition;
+        let status = document.getElementById("status");
+        let chat = document.getElementById("chat");
         let conversationHistory = [];
 
-        document.getElementById("agentSelect").addEventListener("change", () => {
-            currentAssistantId = document.getElementById("agentSelect").value;
+        document.getElementById("agentSelect").addEventListener("change", function(){
+            currentAssistantId = this.value;
         });
 
-        function createRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return null;
+        function initSpeechRecognition() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!window.SpeechRecognition) {
+                alert("Necesitas usar Chrome para voz");
+                return false;
+            }
+            recognition = new SpeechRecognition();
+            recognition.lang = "es-ES";
+            recognition.continuous = false;
+            recognition.interimResults = false;
 
-            const rec = new SpeechRecognition();
-            rec.lang = "es-ES";
-            rec.continuous = false;
-            rec.interimResults = false;
-
-            rec.onresult = async (e) => {
+            recognition.onresult = async (e) => {
+                if (isSpeaking) return;
                 const texto = e.results[0][0].transcript;
                 addMessage("Tú", texto);
-                statusEl.textContent = "Procesando respuesta...";
-                rec.stop();
+                recognition.stop();
                 await sendToAssistant(texto);
             };
 
-            rec.onerror = () => {
-                statusEl.textContent = "Escuchando... Habla ahora";
-                rec.start();
+            recognition.onend = () => {
+                if (!isSpeaking) recognition.start();
             };
-
-            rec.onend = () => {
-                if (!isSpeaking) rec.start();
-            };
-
-            return rec;
-        }
-
-        function startListening() {
-            if (!recognition) recognition = createRecognition();
-            try {
-                recognition.start();
-                statusEl.textContent = "Escuchando... Habla ahora";
-            } catch (e) {}
+            return true;
         }
 
         async function createThread() {
-            const res = await fetch("/api/run", { 
-                method: "POST", 
-                headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ action: "createThread" }) 
+            const res = await fetch("/api/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "createThread" })
             });
             const data = await res.json();
             threadId = data.id;
         }
 
         async function sendToAssistant(texto) {
-            await fetch("/api/run", { 
-                method: "POST", 
-                headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ action: "sendMessage", threadId, content: texto }) 
+            status.textContent = "Procesando...";
+            await fetch("/api/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "sendMessage", threadId, content: texto })
             });
-            const runRes = await fetch("/api/run", { 
-                method: "POST", 
-                headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ action: "runAssistant", threadId, assistantId: currentAssistantId }) 
+
+            const runRes = await fetch("/api/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "runAssistant", threadId, assistantId: currentAssistantId })
             });
             const run = await runRes.json();
             await waitForResponse(run.id);
@@ -248,20 +120,20 @@
         async function waitForResponse(runId) {
             let estado;
             do {
-                const res = await fetch("/api/run", { 
-                    method: "POST", 
-                    headers: { "Content-Type": "application/json" }, 
-                    body: JSON.stringify({ action: "checkRun", threadId, runId }) 
+                const res = await fetch("/api/run", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "checkRun", threadId, runId })
                 });
                 const data = await res.json();
                 estado = data.status;
                 await new Promise(r => setTimeout(r, 300));
             } while (estado === "queued" || estado === "in_progress");
 
-            const msgRes = await fetch("/api/run", { 
-                method: "POST", 
-                headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ action: "getMessages", threadId }) 
+            const msgRes = await fetch("/api/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "getMessages", threadId })
             });
             const mensajes = await msgRes.json();
             const respuesta = mensajes.data[0].content[0].text.value;
@@ -270,59 +142,78 @@
         }
 
         async function speak(texto) {
+            if (isSpeaking) return;
+            if (audioActual) { audioActual.pause(); audioActual = null; }
+
             isSpeaking = true;
-            statusEl.textContent = "Agente hablando...";
-            try {
-                const res = await fetch("/api/speak", { 
-                    method: "POST", 
-                    headers: { "Content-Type": "application/json" }, 
-                    body: JSON.stringify({ text: texto }) 
-                });
-                const blob = await res.blob();
-                const audio = new Audio(URL.createObjectURL(blob));
-                audio.onended = () => {
-                    isSpeaking = false;
-                    startListening();
-                };
-                audio.play();
-            } catch (err) {
+            recognition.stop();
+            status.textContent = "Hablando...";
+
+            const res = await fetch("/api/speak", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: texto })
+            });
+
+            const blob = await res.blob();
+            audioActual = new Audio(URL.createObjectURL(blob));
+
+            audioActual.onended = () => {
                 isSpeaking = false;
-                startListening();
-            }
+                audioActual = null;
+                status.textContent = "Escuchando...";
+                recognition.start();
+            };
+            audioActual.onerror = () => {
+                isSpeaking = false;
+                audioActual = null;
+                status.textContent = "Error";
+                recognition.start();
+            };
+            audioActual.play();
         }
 
         function addMessage(quien, texto) {
             const div = document.createElement("div");
             div.className = "msg " + (quien === "Tú" ? "user" : "agent");
             div.innerHTML = `<strong>${quien} (${codigoParticipante}):</strong> ${texto}`;
-            chatEl.appendChild(div);
-            chatEl.scrollTop = chatEl.scrollHeight;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
             conversationHistory.push(`${quien}: ${texto}`);
         }
 
         function exportConversation() {
-            if (!conversationHistory.length) { 
-                alert("No hay conversación para exportar"); 
-                return; 
+            if (conversationHistory.length === 0) {
+                alert("No hay conversación para exportar");
+                return;
             }
-            const blob = new Blob([conversationHistory.join("\n\n")], { type: "text/plain" });
+            const contenido = conversationHistory.join("\n\n");
+            const blob = new Blob([contenido], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
+            a.href = url;
             a.download = `Conversacion_${codigoParticipante}.txt`;
             a.click();
+            URL.revokeObjectURL(url);
         }
 
         async function startExperiment() {
             codigoParticipante = document.getElementById("codigo").value.trim();
-            if (!codigoParticipante) { 
-                alert("Por favor, escribe tu código de participante"); 
-                return; 
+            if (!codigoParticipante) {
+                alert("Por favor, escribe tu código");
+                return;
             }
-            document.querySelectorAll("input, select, button").forEach(el => el.disabled = true);
+
+            document.querySelector("button").disabled = true;
+            document.getElementById("codigo").disabled = true;
+            document.getElementById("agentSelect").disabled = true;
+
+            if (!initSpeechRecognition()) return;
             await createThread();
-            const primera = "¿Podrías contarme algo que te haya preocupado o generado ansiedad últimamente?";
-            addMessage("Agente", primera);
-            await speak(primera);
+            status.textContent = "Escuchando...";
+            const primeraPregunta = "¿Podrías contarme algo que te haya preocupado o generado ansiedad últimamente?";
+            addMessage("Agente", primeraPregunta);
+            await speak(primeraPregunta);
         }
     </script>
 </body>
