@@ -23,7 +23,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Estudio de Interacción con Agentes Empáticos</h1>
+        <h1>Estudio de Interacción con Agente de Voz</h1>
 
         <div class="info">
             <strong>Instrucciones para participar:</strong><br>
@@ -39,7 +39,7 @@
             <select id="agentSelect">
                 <option value="asst_Zutq2kWYF9Xx29ka2XO7Zi92">Baja Frecuencia</option>
                 <option value="asst_zk5aU4oHYA9NYd6BSmYHuHut">Media Frecuencia</option>
-                <option value="asst_NmxEk9l2Sk6ivcy4rSEWQT7R">Alta Frecuencia</option>
+                <option value="asst_NmxEk9l2Sk6ivcy4R">Alta Frecuencia</option>
             </select>
             <button onclick="startExperiment()">Iniciar Conversación</button>
             <button onclick="exportConversation()" style="background: #28a745">Exportar Conversación</button>
@@ -71,32 +71,38 @@
                 alert("Necesitas usar Chrome para voz");
                 return false;
             }
-            recognition = new SpeechRecognition();
-            recognition.lang = "es-ES";
-            recognition.continuous = false;
-            recognition.interimResults = false;
 
-            recognition.onresult = async (e) => {
-                if (isSpeaking) return;
-                const texto = e.results[0][0].transcript;
-                addMessage("Tú", texto);
-                recognition.stop();
-                await sendToAssistant(texto);
+            const createRecognition = () => {
+                const rec = new SpeechRecognition();
+                rec.lang = "es-ES";
+                rec.continuous = false;
+                rec.interimResults = false;
+
+                rec.onresult = async (e) => {
+                    if (isSpeaking) return;
+                    const texto = e.results[0][0].transcript;
+                    addMessage("Tú", texto);
+                    rec.stop();
+                    await sendToAssistant(texto);
+                };
+
+                rec.onend = () => {
+                    if (!isSpeaking) {
+                        try { rec.start(); } catch(e) {}
+                    }
+                };
+
+                rec.onerror = (event) => {
+                    isSpeaking = false;
+                    status.textContent = "Escuchando...";
+                    recognition = createRecognition();
+                    recognition.start();
+                };
+
+                return rec;
             };
 
-            recognition.onend = () => {
-                if (!isSpeaking) {
-                    try { recognition.start(); } catch(e) {}
-                }
-            };
-
-            recognition.onerror = (event) => {
-                console.error("Error de reconocimiento:", event.error);
-                isSpeaking = false;
-                status.textContent = "Error, reintentando...";
-                try { recognition.start(); } catch(e) {}
-            };
-
+            recognition = createRecognition();
             return true;
         }
 
@@ -173,7 +179,6 @@
                 audioActual.onerror = resetSpeakingState;
                 audioActual.play();
             } catch (error) {
-                console.error("Error al hablar:", error);
                 resetSpeakingState();
             }
         }
