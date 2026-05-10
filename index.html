@@ -34,7 +34,7 @@
             4. Responde a las preguntas con naturalidad.<br>
             5. La conversación durará entre 9 y 11 minutos.<br>
             <br>
-            <strong>Si no te escucha, pulsa el botón "Reiniciar Escucha".</strong>
+            <strong>Si no te escucha: pulsa "Reiniciar Escucha" (obligatorio en móvil).</strong>
         </div>
 
         <div class="input-group">
@@ -45,7 +45,7 @@
                 <option value="asst_NmxEk9l2Sk6ivcy4rSEWQT7R">Alta Frecuencia</option>
             </select>
             <button onclick="startExperiment()">Iniciar Conversación</button>
-            <button onclick="restartListening()" class="btn-restart">Reiniciar Escucha</button>
+            <button onclick="forceRestartListening()" class="btn-restart">Reiniciar Escucha</button>
             <button onclick="exportConversation()" style="background: #28a745">Exportar Conversación</button>
         </div>
 
@@ -60,61 +60,72 @@
         let threadId = null;
         let isSpeaking = false;
         let audioActual = null;
-        let recognition;
+        let recognition = null;
         let status = document.getElementById("status");
         let chat = document.getElementById("chat");
         let conversationHistory = [];
+        let isListening = false;
 
         document.getElementById("agentSelect").addEventListener("change", function(){
             currentAssistantId = this.value;
         });
 
-        function initSpeechRecognition() {
+        function createNewRecognition() {
             window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!window.SpeechRecognition) {
                 alert("Necesitas usar Chrome para voz");
-                return false;
+                return null;
             }
 
-            const createRecognition = () => {
-                const rec = new SpeechRecognition();
-                rec.lang = "es-ES";
-                rec.continuous = false;
-                rec.interimResults = false;
+            const rec = new SpeechRecognition();
+            rec.lang = "es-ES";
+            rec.continuous = false;
+            rec.interimResults = false;
 
-                rec.onresult = async (e) => {
-                    if (isSpeaking) return;
-                    const texto = e.results[0][0].transcript;
-                    addMessage("Tú", texto);
-                    rec.stop();
-                    await sendToAssistant(texto);
-                };
-
-                rec.onend = () => {
-                    if (!isSpeaking) {
-                        status.textContent = "Escuchando...";
-                    }
-                };
-
-                rec.onerror = (event) => {
-                    isSpeaking = false;
-                    status.textContent = "Error. Pulsa 'Reiniciar Escucha'";
-                };
-
-                return rec;
+            rec.onresult = async (e) => {
+                if (isSpeaking || !isListening) return;
+                isListening = false;
+                const texto = e.results[0][0].transcript;
+                addMessage("Tú", texto);
+                rec.stop();
+                await sendToAssistant(texto);
             };
 
-            recognition = createRecognition();
-            return true;
+            rec.onend = () => {
+                isListening = false;
+                status.textContent = "Escuchando (pulse Reiniciar)";
+            };
+
+            rec.onerror = (event) => {
+                isListening = false;
+                status.textContent = "Error. Pulse Reiniciar.";
+            };
+
+            return rec;
         }
 
-        function restartListening() {
-            if (recognition && !isSpeaking) {
-                try {
-                    recognition.start();
-                    status.textContent = "Escuchando...";
-                } catch (e) {}
+        function startListening() {
+            if (isSpeaking || isListening) return;
+            recognition = createNewRecognition();
+            if (!recognition) return;
+
+            try {
+                recognition.start();
+                isListening = true;
+                status.textContent = "Escuchando...";
+            } catch (e) {
+                isListening = false;
+                status.textContent = "Error: Pulse Reiniciar";
             }
+        }
+
+        function forceRestartListening() {
+            if (isSpeaking) return;
+            if (recognition) {
+                try { recognition.stop(); } catch (e) {}
+            }
+            isListening = false;
+            setTimeout(() => startListening(), 100);
         }
 
         async function createThread() {
@@ -173,29 +184,33 @@
             if (audioActual) { audioActual.pause(); audioActual = null; }
 
             isSpeaking = true;
-            recognition.stop();
+            isListening = false;
             status.textContent = "Hablando...";
 
-            const res = await fetch("/api/speak", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: texto })
-            });
+            try {
+                const res = await fetch("/api/speak", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: texto })
+                });
+                const blob = await res.blob();
+                audioActual = new Audio(URL.createObjectURL(blob));
 
-            const blob = await res.blob();
-            audioActual = new Audio(URL.createObjectURL(blob));
-
-            audioActual.onended = () => {
+                audioActual.onended = () => {
+                    isSpeaking = false;
+                    audioActual = null;
+                    status.textContent = "Escuchando (pulse Reiniciar)";
+                };
+                audioActual.onerror = () => {
+                    isSpeaking = false;
+                    audioActual = null;
+                    status.textContent = "Error audio";
+                };
+                audioActual.play();
+            } catch (error) {
                 isSpeaking = false;
-                audioActual = null;
-                status.textContent = "Escuchando...";
-            };
-            audioActual.onerror = () => {
-                isSpeaking = false;
-                audioActual = null;
-                status.textContent = "Error";
-            };
-            audioActual.play();
+                status.textContent = "Error al hablar";
+            }
         }
 
         function addMessage(quien, texto) {
@@ -233,10 +248,8 @@
             document.getElementById("codigo").disabled = true;
             document.getElementById("agentSelect").disabled = true;
 
-            if (!initSpeechRecognition()) return;
             await createThread();
-            status.textContent = "Escuchando...";
-            recognition.start();
+            status.textContent = "Listo. Pulsa Reiniciar Escucha";
             const primeraPregunta = "¿Podrías contarme algo que te haya preocupado o generado ansiedad últimamente?";
             addMessage("Agente", primeraPregunta);
             await speak(primeraPregunta);
