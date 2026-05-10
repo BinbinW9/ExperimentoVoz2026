@@ -14,6 +14,7 @@
         input, select, button { padding: 12px 20px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; margin: 0 5px; }
         button { background: #007bff; color: white; border: none; cursor: pointer; }
         button:disabled { background: #999; cursor: not-allowed; }
+        .btn-restart { background: #ff9800; color: white; border: none; cursor: pointer; }
         .status { background: #e9f5ff; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; font-size: 16px; }
         .chat { height: 400px; overflow-y: auto; background: #f8f9fa; padding: 20px; border-radius: 8px; }
         .msg { margin: 10px 0; padding: 10px 15px; border-radius: 8px; }
@@ -23,7 +24,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Estudio de Interacción con Agente de Voz</h1>
+        <h1>Estudio de Interacción con Agentes Empáticos</h1>
 
         <div class="info">
             <strong>Instrucciones para participar:</strong><br>
@@ -31,7 +32,9 @@
             2. Selecciona el agente y pulsa "Iniciar".<br>
             3. Habla claro cuando el sistema diga "Escuchando...".<br>
             4. Responde a las preguntas con naturalidad.<br>
-            5. La conversación durará entre 9 y 11 minutos.
+            5. La conversación durará entre 9 y 11 minutos.<br>
+            <br>
+            <strong>Si no te escucha, pulsa el botón "Reiniciar Escucha".</strong>
         </div>
 
         <div class="input-group">
@@ -39,9 +42,10 @@
             <select id="agentSelect">
                 <option value="asst_Zutq2kWYF9Xx29ka2XO7Zi92">Baja Frecuencia</option>
                 <option value="asst_zk5aU4oHYA9NYd6BSmYHuHut">Media Frecuencia</option>
-                <option value="asst_NmxEk9l2Sk6ivcy4R">Alta Frecuencia</option>
+                <option value="asst_NmxEk9l2Sk6ivcy4rSEWQT7R">Alta Frecuencia</option>
             </select>
             <button onclick="startExperiment()">Iniciar Conversación</button>
+            <button onclick="restartListening()" class="btn-restart">Reiniciar Escucha</button>
             <button onclick="exportConversation()" style="background: #28a745">Exportar Conversación</button>
         </div>
 
@@ -88,15 +92,13 @@
 
                 rec.onend = () => {
                     if (!isSpeaking) {
-                        try { rec.start(); } catch(e) {}
+                        status.textContent = "Escuchando...";
                     }
                 };
 
                 rec.onerror = (event) => {
                     isSpeaking = false;
-                    status.textContent = "Escuchando...";
-                    recognition = createRecognition();
-                    recognition.start();
+                    status.textContent = "Error. Pulsa 'Reiniciar Escucha'";
                 };
 
                 return rec;
@@ -104,6 +106,15 @@
 
             recognition = createRecognition();
             return true;
+        }
+
+        function restartListening() {
+            if (recognition && !isSpeaking) {
+                try {
+                    recognition.start();
+                    status.textContent = "Escuchando...";
+                } catch (e) {}
+            }
         }
 
         async function createThread() {
@@ -162,34 +173,29 @@
             if (audioActual) { audioActual.pause(); audioActual = null; }
 
             isSpeaking = true;
-            if (recognition) recognition.stop();
+            recognition.stop();
             status.textContent = "Hablando...";
 
-            try {
-                const res = await fetch("/api/speak", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text: texto })
-                });
+            const res = await fetch("/api/speak", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: texto })
+            });
 
-                const blob = await res.blob();
-                audioActual = new Audio(URL.createObjectURL(blob));
+            const blob = await res.blob();
+            audioActual = new Audio(URL.createObjectURL(blob));
 
-                audioActual.onended = resetSpeakingState;
-                audioActual.onerror = resetSpeakingState;
-                audioActual.play();
-            } catch (error) {
-                resetSpeakingState();
-            }
-        }
-
-        function resetSpeakingState() {
-            isSpeaking = false;
-            audioActual = null;
-            status.textContent = "Escuchando...";
-            if (recognition) {
-                try { recognition.start(); } catch(e) {}
-            }
+            audioActual.onended = () => {
+                isSpeaking = false;
+                audioActual = null;
+                status.textContent = "Escuchando...";
+            };
+            audioActual.onerror = () => {
+                isSpeaking = false;
+                audioActual = null;
+                status.textContent = "Error";
+            };
+            audioActual.play();
         }
 
         function addMessage(quien, texto) {
@@ -230,6 +236,7 @@
             if (!initSpeechRecognition()) return;
             await createThread();
             status.textContent = "Escuchando...";
+            recognition.start();
             const primeraPregunta = "¿Podrías contarme algo que te haya preocupado o generado ansiedad últimamente?";
             addMessage("Agente", primeraPregunta);
             await speak(primeraPregunta);
