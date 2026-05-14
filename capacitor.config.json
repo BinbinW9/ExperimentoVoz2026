@@ -1,8 +1,0 @@
-{
-  "appId": "com.experimento.voz",
-  "appName": "Experimento Voz",
-  "webDir": "dist",
-  "server": {
-    "url": "https://experimento-voz2026.vercel.app"
-  }
-}
