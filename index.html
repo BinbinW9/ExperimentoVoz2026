@@ -24,7 +24,6 @@
 <body>
     <div class="container">
         <h1>Estudio de Interacción con Agentes Empáticos</h1>
-
         <div class="info">
             <strong>Instrucciones para participar:</strong><br>
             1. Escribe tu código único (ej: L1-01, FL-01).<br>
@@ -33,27 +32,24 @@
             4. Responde a las preguntas con naturalidad.<br>
             5. La conversación durará entre 9 y 11 minutos.
         </div>
-
         <div class="input-group">
             <input type="text" id="codigo" placeholder="Escribe tu código aquí">
             <select id="agentSelect">
-                <option value="asst_Zutq2kWYF9Xx29ka2XO7Zi92">Baja Frecuencia</option>
-                <option value="asst_zk5aU4oHYA9NYd6BSmYHuHut">Media Frecuencia</option>
-                <option value="asst_NmxEk9l2Sk6ivcy4rSEWQT7R">Alta Frecuencia</option>
+                <option value="low">Baja Frecuencia</option>
+                <option value="medium">Media Frecuencia</option>
+                <option value="high">Alta Frecuencia</option>
             </select>
             <button onclick="startExperiment()">Iniciar Conversación</button>
             <button onclick="exportConversation()" style="background: #28a745">Exportar Conversación</button>
         </div>
-
         <div class="status" id="status">Estado: Listo</div>
         <div class="chat" id="chat"></div>
     </div>
-
     <script>
         const VOICE = "nova";
         let codigoParticipante = "";
-        let currentAssistantId = document.getElementById("agentSelect").value;
-        let threadId = null;
+        let currentGroup = document.getElementById("agentSelect").value;
+        let previousResponseId = null;
         let isSpeaking = false;
         let audioActual = null;
         let recognition;
@@ -62,7 +58,7 @@
         let conversationHistory = [];
 
         document.getElementById("agentSelect").addEventListener("change", function(){
-            currentAssistantId = this.value;
+            currentGroup = this.value;
         });
 
         function initSpeechRecognition() {
@@ -75,7 +71,6 @@
             recognition.lang = "es-ES";
             recognition.continuous = false;
             recognition.interimResults = false;
-
             recognition.onresult = async (e) => {
                 if (isSpeaking) return;
                 const texto = e.results[0][0].transcript;
@@ -83,81 +78,51 @@
                 recognition.stop();
                 await sendToAssistant(texto);
             };
-
             recognition.onend = () => {
                 if (!isSpeaking) recognition.start();
             };
             return true;
         }
 
-        async function createThread() {
-            const res = await fetch("/api/run", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "createThread" })
-            });
-            const data = await res.json();
-            threadId = data.id;
-        }
-
         async function sendToAssistant(texto) {
             status.textContent = "Procesando...";
-            await fetch("/api/run", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "sendMessage", threadId, content: texto })
-            });
-
-            const runRes = await fetch("/api/run", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "runAssistant", threadId, assistantId: currentAssistantId })
-            });
-            const run = await runRes.json();
-            await waitForResponse(run.id);
-        }
-
-        async function waitForResponse(runId) {
-            let estado;
-            do {
+            try {
                 const res = await fetch("/api/run", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "checkRun", threadId, runId })
+                    body: JSON.stringify({
+                        content: texto,
+                        group: currentGroup,
+                        previousResponseId: previousResponseId
+                    })
                 });
                 const data = await res.json();
-                estado = data.status;
-                await new Promise(r => setTimeout(r, 300));
-            } while (estado === "queued" || estado === "in_progress");
-
-            const msgRes = await fetch("/api/run", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "getMessages", threadId })
-            });
-            const mensajes = await msgRes.json();
-            const respuesta = mensajes.data[0].content[0].text.value;
-            addMessage("Agente", respuesta);
-            await speak(respuesta);
+                if (data.error) {
+                    status.textContent = "Error: " + data.error;
+                    return;
+                }
+                previousResponseId = data.responseId;
+                addMessage("Agente", data.reply);
+                await speak(data.reply);
+            } catch (e) {
+                status.textContent = "Error de conexión";
+                console.error(e);
+            }
         }
 
         async function speak(texto) {
             if (isSpeaking) return;
             if (audioActual) { audioActual.pause(); audioActual = null; }
-
             isSpeaking = true;
             recognition.stop();
             status.textContent = "Hablando...";
-
             const res = await fetch("/api/speak", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text: texto })
             });
-
             const blob = await res.blob();
             audioActual = new Audio(URL.createObjectURL(blob));
-
             audioActual.onended = () => {
                 isSpeaking = false;
                 audioActual = null;
@@ -203,13 +168,10 @@
                 alert("Por favor, escribe tu código");
                 return;
             }
-
             document.querySelector("button").disabled = true;
             document.getElementById("codigo").disabled = true;
             document.getElementById("agentSelect").disabled = true;
-
             if (!initSpeechRecognition()) return;
-            await createThread();
             status.textContent = "Escuchando...";
             const primeraPregunta = "¿Podrías contarme algo que te haya preocupado o generado ansiedad últimamente?";
             addMessage("Agente", primeraPregunta);
