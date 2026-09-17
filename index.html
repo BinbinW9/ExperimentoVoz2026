@@ -47,6 +47,7 @@
     </div>
     <script>
         const VOICE = "nova";
+        const SILENCE_THRESHOLD = 3000;
         let codigoParticipante = "";
         let currentGroup = document.getElementById("agentSelect").value;
         let previousResponseId = null;
@@ -56,6 +57,9 @@
         let status = document.getElementById("status");
         let chat = document.getElementById("chat");
         let conversationHistory = [];
+        let silenceTimer = null;
+        let finalTranscript = "";
+        let shouldListen = false;
 
         document.getElementById("agentSelect").addEventListener("change", function(){
             currentGroup = this.value;
@@ -69,17 +73,42 @@
             }
             recognition = new SpeechRecognition();
             recognition.lang = "es-ES";
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.onresult = async (e) => {
-                if (isSpeaking) return;
-                const texto = e.results[0][0].transcript;
-                addMessage("Tú", texto);
-                recognition.stop();
-                await sendToAssistant(texto);
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onresult = (e) => {
+                if (isSpeaking || !shouldListen) return;
+
+                let interimTranscript = "";
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    const transcript = e.results[i][0].transcript;
+                    if (e.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                clearTimeout(silenceTimer);
+                const currentTranscript = (finalTranscript + interimTranscript).trim();
+
+                if (currentTranscript) {
+                    silenceTimer = setTimeout(async () => {
+                        clearTimeout(silenceTimer);
+                        shouldListen = false;
+                        try { recognition.stop(); } catch(err) {}
+                        const texto = currentTranscript;
+                        finalTranscript = "";
+                        addMessage("Tú", texto);
+                        await sendToAssistant(texto);
+                    }, SILENCE_THRESHOLD);
+                }
             };
+
             recognition.onend = () => {
-                if (!isSpeaking) recognition.start();
+                if (shouldListen && !isSpeaking) {
+                    try { recognition.start(); } catch(err) {}
+                }
             };
             return true;
         }
@@ -114,7 +143,10 @@
             if (isSpeaking) return;
             if (audioActual) { audioActual.pause(); audioActual = null; }
             isSpeaking = true;
-            recognition.stop();
+            shouldListen = false;
+            clearTimeout(silenceTimer);
+            finalTranscript = "";
+            try { recognition.stop(); } catch(err) {}
             status.textContent = "Hablando...";
             const res = await fetch("/api/speak", {
                 method: "POST",
@@ -127,13 +159,15 @@
                 isSpeaking = false;
                 audioActual = null;
                 status.textContent = "Escuchando...";
-                recognition.start();
+                shouldListen = true;
+                try { recognition.start(); } catch(err) {}
             };
             audioActual.onerror = () => {
                 isSpeaking = false;
                 audioActual = null;
                 status.textContent = "Error";
-                recognition.start();
+                shouldListen = true;
+                try { recognition.start(); } catch(err) {}
             };
             audioActual.play();
         }
@@ -172,6 +206,8 @@
             document.getElementById("codigo").disabled = true;
             document.getElementById("agentSelect").disabled = true;
             if (!initSpeechRecognition()) return;
+            shouldListen = true;
+            try { recognition.start(); } catch(err) {}
             status.textContent = "Escuchando...";
             const primeraPregunta = "¿Podrías contarme algo que te haya preocupado o generado ansiedad últimamente?";
             addMessage("Agente", primeraPregunta);
